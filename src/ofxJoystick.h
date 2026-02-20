@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #include "ofMain.h"
 
@@ -14,7 +14,7 @@ private:
     int js_{-1};
 
 
-    struct axis_state axes[3] = {0};
+    struct axis_state axes[8] = {0};
     unsigned char button[256] = {0};
 
 #endif // __linux__

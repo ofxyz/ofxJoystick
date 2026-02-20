@@ -1,9 +1,10 @@
-﻿
+
 #include "ofxJoystick.h"
 #ifdef __linux__
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 #include <linux/joystick.h>
 int read_event(int fd, struct js_event *event)
 {
@@ -43,11 +44,11 @@ size_t get_button_count(int fd)
     return buttons;
 }
 
-size_t get_axis_state(struct js_event *event, struct axis_state axes[3])
+size_t get_axis_state(struct js_event *event, struct axis_state axes[8])
 {
     size_t axis = event->number / 2;
 
-    if (axis < 3)
+    if (axis < 8)
     {
         if (event->number % 2 == 0)
             axes[axis].x = event->value/32767.f;
@@ -82,31 +83,32 @@ void ofxJoystick::updateState() {
         return;
 
     isConnect_ = true;
-    //perror("Could not open joystick");
 
-    struct JS_DATA_TYPE jso;
-    if(read(js_, &jso, JS_RETURN))
+    // Read init events to detect bridged button connectors used as hardware IDs.
+    // The kernel sends JS_EVENT_INIT events for all buttons/axes on first open.
+    unsigned int bridged = 0;
+    struct js_event init_event;
+    while (read_event(js_, &init_event) == 0)
     {
-        printf("%x\n", jso.buttons );
-        if(jso.buttons == 0)
+        if ((init_event.type & ~JS_EVENT_INIT) == JS_EVENT_BUTTON
+            && (init_event.type & JS_EVENT_INIT)
+            && init_event.value)
         {
-          // No Bridge detected
-          printf("Port %d - Detected no Bridged Buttons", id_ );
-          isConnect_ = false;
-          close(js_);
-          return;
+            if (init_event.number < 15)
+                bridged |= (1 << init_event.number);
+            button[init_event.number] = GLFW_PRESS;
+            printf("%d Held\n", init_event.number);
         }
-         for (int i=0;i<15;i++)
-            if(jso.buttons & 1 << i)
-             {
-                button[i] = true;
-                printf("%d Held\n",i);
-            }
     }
-    else
+    if (bridged == 0)
     {
-
+        printf("Port %d - Detected no Bridged Buttons\n", id_);
+        isConnect_ = false;
+        close(js_);
+        js_ = -1;
+        return;
     }
+    printf("Port %d - Bridged buttons: %x\n", id_, bridged);
   }
   #else
   isConnect_ = (glfwJoystickPresent(id_) == GL_TRUE);
