@@ -2,6 +2,10 @@
 #pragma once
 #include "ofMain.h"
 
+#include <set>
+#include <string>
+#include <vector>
+
 #include "GLFW/glfw3.h"
 struct axis_state {
     short x, y;
@@ -19,16 +23,16 @@ private:
 
 #endif // __linux__
   int    id_;
-  string name_;
+  std::string name_;
 
   int buttonNum_;
   int axisNum_;
 
-  set<int> pressed_;
-  set<int> pushing_;
-  set<int> release_;
+  std::set<int> pressed_;
+  std::set<int> pushing_;
+  std::set<int> release_;
 
-  vector<float> axis_;
+  std::vector<float> axis_;
 
   void updateState();
   void updateAxis();
@@ -51,7 +55,7 @@ public:
   int getId() const;
 
   // return your Gamepad name
-  const string& getName() const;
+  const std::string& getName() const;
 
   // return number of Button and Axis
   int getButtonNum() const;
